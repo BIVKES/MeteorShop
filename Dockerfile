@@ -1,32 +1,37 @@
-FROM node:20-bullseye AS build
+# 1. Сборка приложения
+FROM node:20.18.0-bullseye AS build
 
-# Устанавливаем необходимые зависимости
+# Устанавливаем системные сборщики для C++ модулей
 RUN apt-get update && apt-get install -y curl python3 make g++ git
 
-# Настройки окружения для Meteor внутри Docker
+# Принудительно задаем Node-окружение для Meteor
 ENV METEOR_ALLOW_SUPERUSER=1
 ENV TOOL_NODE_FLAGS="--max-old-space-size=4096"
+ENV DISABLE_RSPACK=1
 
 # Устанавливаем Meteor
 RUN curl https://install.meteor.com/ | sh
 
 WORKDIR /app
 
-# Копируем всё содержимое проекта
+# Копируем проект
 COPY . .
 
-# Собираем бандл без прогона тестов и мобильных билдов
-RUN meteor build --directory /app/build --server-only --allow-superuser --architecture os.linux.x86_64
+# Устанавливаем npm-зависимости с отключением проверки движков
+RUN npm install --engine-strict=false
 
-# Этап запуска
-FROM node:20-bullseye-slim
+# Собираем продакшен-бандл
+RUN meteor build --directory /app/build --server-only --allow-superuser
+
+# 2. Продакшен запуск
+FROM node:20.18.0-bullseye-slim
 
 WORKDIR /app
 
-# Копируем скомпилированный бандл
+# Копируем результат сборки
 COPY --from=build /app/build/bundle ./
 
-# Устанавливаем продакшен-зависимости скомпилированного сервера
+# Устанавливаем зависимости сервера
 RUN cd programs/server && npm install --production
 
 EXPOSE 3000
