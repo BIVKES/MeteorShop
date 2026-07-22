@@ -1,0 +1,15 @@
+# Meteor build local cache
+.meteor/local/
+
+# Node modules
+node_modules/
+
+# Meteor Modern-Tools build context directories
+_build
+*/build-assets
+*/build-chunks
+.rsdoctor
+
+# OS files
+.DS_Store
+Thumbs.db
